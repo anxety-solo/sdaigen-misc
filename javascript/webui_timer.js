@@ -8,7 +8,7 @@ class Logger {
     error(msg) { console.error(`[${this.prefix}]: ${msg}`); }
 }
 
-const logger = new Logger('sdAIgen-misc');
+const logger = new Logger('sdAIgen-misc (timer)');
 
 // ===== Translations =====
 const TRANSLATIONS = {

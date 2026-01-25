@@ -2,7 +2,7 @@ function createGithubLink() {
     const CONFIG = {
         URL: 'https://github.com/anxety-solo',
         TEXT: 'ANXETY',
-        PREFIX: '[sdAIgen-misc]',
+        PREFIX: '[sdAIgen-misc (gh)]',
         SEPARATOR: '\u2003•\u2003'
     };
 

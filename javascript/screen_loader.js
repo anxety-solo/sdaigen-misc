@@ -3,20 +3,19 @@
 
     // ===== CONFIG =====
     const CONFIG = {
-        DEBUG: false,
+        DEBUG: true,
         STAR_COUNT: 100,
-        TIMEOUT: 60000,
-        COMPLETION_CHECK: 'txt2img_token_counter', // I feel like this element takes the longest to load.
+        TIMEOUT: 90000,
+        COMPLETION_CHECK: 'txt2img_token_counter',
         NEKO_EMOJIS: ['≽^•⩊•^≼', '(=^･ω･^=)', '(=^･ｪ･^=)', 'ฅ^•ﻌ•^ฅ', '(=ↀωↀ=)', '( =ω=)..nyaa'],
         STAGES: [
-            { selector: null, progress: 25, maxProgress: 40, status: 'DOM ready...' },
-            { selector: '#gradio-app, gradio-app', progress: 55, maxProgress: 70, status: 'Loading Gradio...' },
-            { selector: '#txt2img_token_counter', progress: 85, maxProgress: 100, status: 'Almost ready...' }
+            { selector: null, progress: 25, status: 'DOM ready...' },
+            { selector: '#gradio-app, gradio-app', progress: 55, status: 'Loading Gradio...' },
+            { selector: '#txt2img_token_counter', progress: 85, status: 'Almost ready...' }
         ],
         INTERVALS: {
             progress: 15,
-            check: 50,
-            simulation: { min: 150, max: 500 }
+            check: 50
         }
     };
 
@@ -204,7 +203,7 @@
             color: #ffffff;
             font-size: clamp(40px, 8vw, 50px);
             opacity: 0;
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            transition: opacity 0.3s ease 0.3s, transform 0.3s ease 0.3s;
             transform: scale(0.5);
         }
         .als-checkmark.als-show {
@@ -223,13 +222,11 @@
             opacity: 1;
             animation: als-spin 1.2s cubic-bezier(0.70, -0.55, 0.265, 1.55) infinite;
         }
-
         .als-spinner-circle:nth-child(2) {
             animation-delay: 0.15s;
             opacity: 0.6;
             transform: scale(0.8);
         }
-
         .als-spinner-circle:nth-child(3) {
             animation-delay: 0.3s;
             opacity: 0.3;
@@ -381,7 +378,6 @@
 
     // ===== UTILITY FUNCTIONS =====
     const Utils = {
-        random: (min, max) => min + Math.random() * (max - min),
         randomItem: arr => arr[Math.floor(Math.random() * arr.length)],
         createElement: (tag, attrs = {}) => Object.assign(document.createElement(tag), attrs),
         loadScript: src => new Promise((resolve, reject) => {
@@ -398,10 +394,9 @@
     class AnxetyLoadingScreen {
         constructor() {
             this.container = null;
-            this.styleElement = null;
             this.elements = {};
-            this.state = { current: 0, target: 0, active: true, lastStage: 0 };
-            this.timers = { progress: null, simulation: null, check: null, timeout: null };
+            this.state = { current: 0, target: 0, active: true };
+            this.timers = { progress: null, check: null, timeout: null };
             this.observers = [];
         }
 
@@ -421,8 +416,8 @@
         }
 
         injectStyles() {
-            this.styleElement = Utils.createElement('style', { textContent: CSS });
-            document.head.appendChild(this.styleElement);
+            const styleElement = Utils.createElement('style', { textContent: CSS });
+            document.head.appendChild(styleElement);
         }
 
         createContainer() {
@@ -505,41 +500,17 @@
                 // Stage 3: Token Counter Found (Completion)
                 if (currentStage === 2 && document.getElementById(CONFIG.COMPLETION_CHECK)) {
                     this.setStage(2);
-                    setTimeout(() => {
-                        this.clearTimer('check');
-                        this.complete();
-                    }, 500);
+                    this.clearTimer('check');
+                    this.complete();
                 }
             }, CONFIG.INTERVALS.check);
         }
 
         setStage(stageIndex) {
             const stage = CONFIG.STAGES[stageIndex];
-            this.clearTimer('simulation');
-
             this.state.target = stage.progress;
-            this.state.lastStage = stage.progress;
             this.elements.status.textContent = stage.status;
-
             log(`Stage ${stageIndex + 1}: ${stage.status} (${stage.progress}%)`);
-
-            // Simulate additional loading with random increments
-            const simulate = () => {
-                if (!this.state.active || this.state.current >= stage.maxProgress) return;
-
-                const increment = Utils.random(0.1, 0.5);
-                const newTarget = Math.min(stage.maxProgress, this.state.target + increment);
-                const maxAllowed = this.state.lastStage + 15;
-
-                if (newTarget <= maxAllowed) this.state.target = newTarget;
-
-                this.timers.simulation = setTimeout(simulate, Utils.random(
-                    CONFIG.INTERVALS.simulation.min,
-                    CONFIG.INTERVALS.simulation.max
-                ));
-            };
-
-            this.timers.simulation = setTimeout(simulate, Utils.random(10, 50));
         }
 
         updateProgressBar() {
@@ -550,7 +521,7 @@
 
         watchForCompletion() {
             const observer = new MutationObserver(() => {
-                if (document.getElementById(CONFIG.COMPLETION_CHECK) && this.state.active && this.state.target >= 95) {
+                if (document.getElementById(CONFIG.COMPLETION_CHECK) && this.state.active && this.state.target >= 85) {
                     observer.disconnect();
                     this.complete();
                 }
@@ -587,7 +558,7 @@
 
             // Show checkmark, hide spinner
             this.elements.spinner?.classList.add('als-hide');
-            setTimeout(() => this.elements.checkmark?.classList.add('als-show'), 300);
+            this.elements.checkmark?.classList.add('als-show');
 
             if (this.elements.status) {
                 this.elements.status.textContent = `Ready! ${Utils.randomItem(CONFIG.NEKO_EMOJIS)}`;
@@ -595,12 +566,12 @@
 
             log('UI fully loaded');
 
-            // Fade out and cleanup
+            // Fade out after
             setTimeout(() => {
                 this.elements.card?.classList.add('als-fade-out');
                 this.container?.classList.add('als-fade-out');
-                setTimeout(() => this.cleanup(), 600);
-            }, 400);
+                setTimeout(() => this.removeContainer(), 100);
+            }, 300);
         }
 
         clearTimer(name) {
@@ -611,22 +582,17 @@
             }
         }
 
-        cleanup() {
-            // Clear all timers
-            Object.keys(this.timers).forEach(key => this.clearTimer(key));
-
-            // Disconnect observers
-            this.observers.forEach(obs => { try { obs.disconnect(); } catch(e) {} });
-
-            // Remove elements (keep anime.js in DOM)
-            [this.container, this.styleElement].forEach(el => {
-                try { el?.parentNode?.removeChild(el); } catch(e) {}
-            });
+        removeContainer() {
+            try {
+                this.container?.parentNode?.removeChild(this.container);
+            } catch(e) {
+                log('Error removing container:', e);
+            }
 
             // Clear references
-            this.container = this.styleElement = this.elements = this.state = null;
+            this.container = this.elements = null;
 
-            log('Cleanup complete (anime.js preserved)');
+            log('Loading screen removed');
         }
     }
 
