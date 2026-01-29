@@ -1,5 +1,5 @@
 onUiLoaded(() => {
-    const PREFIX = '[sdAIgen-misc]';
+    const log = createLogger('hyp');
     const tabs = document.querySelectorAll('#txt2img_extra_tabs .tab-nav button');
 
     let removed = false;
@@ -12,6 +12,6 @@ onUiLoaded(() => {
     });
 
     if (removed) {
-        console.log(`${PREFIX}: Hypernetworks tab removed`);
+        log('Hypernetworks tab removed');
     }
 });

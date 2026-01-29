@@ -1,9 +1,11 @@
 (function() {
     'use strict';
 
+    const log = createLogger('asl');
+
     // ===== CONFIG =====
     const CONFIG = {
-        DEBUG: true,
+        DEBUG: false,
         STAR_COUNT: 100,
         TIMEOUT: 90000,
         COMPLETION_CHECK: 'txt2img_token_counter',
@@ -19,7 +21,8 @@
         }
     };
 
-    const log = (...args) => CONFIG.DEBUG && console.log('[sdAIgen-misc (asl)]', ...args);
+    // Debug logging wrapper
+    const logDebug = (...args) => CONFIG.DEBUG && log(...args);
 
     // ===== STYLES =====
     const CSS = `
@@ -385,7 +388,10 @@
             const script = document.createElement('script');
             script.src = src;
             script.onload = resolve;
-            script.onerror = () => { log('Failed to load anime.js'); resolve(); };
+            script.onerror = () => {
+                log.warn('Failed to load anime.js');
+                resolve();
+            };
             document.head.appendChild(script);
         })
     };
@@ -402,7 +408,9 @@
 
         async init() {
             // Skip if UI already loaded
-            if (document.getElementById(CONFIG.COMPLETION_CHECK)) return log('UI already loaded');
+            if (document.getElementById(CONFIG.COMPLETION_CHECK)) {
+                return logDebug('UI already loaded');
+            }
 
             await Utils.loadScript('https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js');
             this.injectStyles();
@@ -510,7 +518,7 @@
             const stage = CONFIG.STAGES[stageIndex];
             this.state.target = stage.progress;
             this.elements.status.textContent = stage.status;
-            log(`Stage ${stageIndex + 1}: ${stage.status} (${stage.progress}%)`);
+            logDebug(`Stage ${stageIndex + 1}: ${stage.status} (${stage.progress}%)`);
         }
 
         updateProgressBar() {
@@ -533,7 +541,7 @@
             // Force completion after timeout
             this.timers.timeout = setTimeout(() => {
                 if (this.state.active) {
-                    log('Timeout reached, forcing completion');
+                    log.warn('Timeout reached, forcing completion');
                     observer.disconnect();
                     this.complete();
                 }
@@ -586,7 +594,7 @@
             try {
                 this.container?.parentNode?.removeChild(this.container);
             } catch(e) {
-                log('Error removing container:', e);
+                log.error(`Error removing container: ${e}`);
             }
 
             // Clear references

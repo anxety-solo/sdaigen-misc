@@ -1,13 +1,11 @@
 function createGithubLink() {
+    const log = createLogger('gh');
+
     const CONFIG = {
         URL: 'https://github.com/anxety-solo',
         TEXT: 'ANXETY',
-        PREFIX: '[sdAIgen-misc (gh)]',
         SEPARATOR: '\u2003•\u2003'
     };
-
-    const log = (msg, type = 'log') =>
-        console[type](`${CONFIG.PREFIX}: ${msg}`);
 
     const addLink = () => {
         const footer = gradioApp()?.querySelector('#footer');
@@ -22,7 +20,7 @@ function createGithubLink() {
             'a[onclick*="settings_restart_gradio"]'
         );
         if (!reloadLink) {
-            log('"Reload UI" link not found in footer');
+            log.warn('"Reload UI" link not found in footer');
             return false;
         }
 
@@ -39,7 +37,7 @@ function createGithubLink() {
             log('GitHub link successfully added to footer');
             return true;
         } catch (e) {
-            log(`Error adding GitHub link: ${e}`, 'error');
+            log.error(`Error adding GitHub link: ${e}`);
             return false;
         }
     };

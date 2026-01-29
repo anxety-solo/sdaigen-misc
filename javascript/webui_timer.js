@@ -1,14 +1,4 @@
-// ===== Logger Module =====
-class Logger {
-    constructor(prefix) {
-        this.prefix = prefix;
-    }
-    log(msg) { console.log(`[${this.prefix}]: ${msg}`); }
-    warn(msg) { console.warn(`[${this.prefix}]: ${msg}`); }
-    error(msg) { console.error(`[${this.prefix}]: ${msg}`); }
-}
-
-const logger = new Logger('sdAIgen-misc (timer)');
+const log = createLogger('timer');
 
 // ===== Translations =====
 const TRANSLATIONS = {
@@ -68,7 +58,7 @@ class Timer {
     get isPinggy() {
         if (this._isPinggy === null) {
             this._isPinggy = window.location.href.includes('a.free.pinggy.link');
-            logger.log(`Pinggy tunnel detected: ${this._isPinggy}`);
+            log(`Pinggy tunnel detected: ${this._isPinggy}`);
         }
         return this._isPinggy;
     }
@@ -122,7 +112,7 @@ class Timer {
 
             this.update();
         } catch (error) {
-            logger.error(`Error refreshing timer: ${error.message}`);
+            log.error(`Error refreshing timer: ${error.message}`);
             this.element.innerText = t.error + error.message;
         }
     }
@@ -202,7 +192,7 @@ function findAudioElement() {
         }
     }
 
-    logger.error('Audio element not found in DOM structure');
+    log.error('Audio element not found in DOM structure');
     return null;
 }
 
@@ -210,7 +200,7 @@ function findAudioElement() {
 function toggleNotification(button, image) {
     const audio = findAudioElement();
     if (!audio) {
-        logger.warn('No audio element found for notification toggle');
+        log.warn('No audio element found for notification toggle');
         return;
     }
 
@@ -222,7 +212,7 @@ function toggleNotification(button, image) {
         if (newMutedState) {
             audio.pause();
         } else {
-            audio.play().catch(e => logger.error(`Playback error: ${e.message}`));
+            audio.play().catch(e => log.error(`Playback error: ${e.message}`));
         }
 
         button.title = newMutedState ? t.unmuteTooltip : t.muteTooltip;
@@ -235,7 +225,7 @@ function toggleNotification(button, image) {
     if (/Mobi|Android/i.test(navigator.userAgent)) {
         activateAudio();
         if (!audio.muted) {
-            audio.play().catch(e => logger.error(`Mobile playback error: ${e.message}`));
+            audio.play().catch(e => log.error(`Mobile playback error: ${e.message}`));
         }
     } else {
         activateAudio();
@@ -247,7 +237,7 @@ function toggleNSFWBlur(button, image) {
     const i2iGallery = gradioApp().querySelector('#img2img_gallery_container');
 
     if (!t2iGallery || !i2iGallery) {
-        logger.warn('Gallery containers not found for NSFW blur toggle');
+        log.warn('Gallery containers not found for NSFW blur toggle');
         return;
     }
 
@@ -267,7 +257,7 @@ function createTimer() {
     const quickSettings = app.querySelector('#quicksettings');
 
     if (!quickSettings) {
-        logger.error('Quick settings element not found');
+        log.error('Quick settings element not found');
         return;
     }
 
@@ -338,12 +328,11 @@ function createTimer() {
             }
         `;
         document.head.appendChild(style);
-        // logger.log('NSFW blur CSS injected');
     }
 
     // INIT
     quickSettings.parentNode.insertBefore(mainDiv, quickSettings.nextSibling);
-    logger.log('Timer UI initialized successfully');
+    log('Timer UI initialized successfully');
 }
 
 onUiLoaded(createTimer);
