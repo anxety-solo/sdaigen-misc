@@ -131,64 +131,48 @@ function createElement(tag, className, attributes = {}, children = []) {
     return element;
 }
 
-// Improved Shadow DOM traversal
-function traverseShadowDOM(root, callback) {
-    if (!root) return;
+// Audio element detection
+let cachedAudioElement = null;
 
-    // Check if current root is an element with shadow
-    if (root instanceof Element && root.shadowRoot) {
-        callback(root.shadowRoot);
-        traverseShadowDOM(root.shadowRoot, callback);
+function findAudioElement() {
+    // Return cached element if already found
+    if (cachedAudioElement) {
+        return cachedAudioElement;
     }
 
-    // Process children
-    root.childNodes.forEach(child => {
-        if (child.nodeType === Node.ELEMENT_NODE) {
-            callback(child);
-            traverseShadowDOM(child, callback);
-        }
-    });
-}
-
-// Audio element detection
-function findAudioElement() {
     // Gradio 3.x
     const legacyAudio = gradioApp().querySelector('#audio_notification > audio');
-    if (legacyAudio) return legacyAudio;
-
-    // Mobile
-    const mobileSelectors = [
-        '[aria-label="Play audio"]',
-        '.mobile-audio-player',
-        'audio[controls]:not([hidden])'
-    ];
-
-    for (const selector of mobileSelectors) {
-        const audio = gradioApp().querySelector(selector);
-        if (audio) return audio;
+    if (legacyAudio) {
+        cachedAudioElement = legacyAudio;
+        log('Found legacy audio element (Gradio 3.x)');
+        return legacyAudio;
     }
 
     // Gradio 4.x
-    let foundAudio = null;
+    const audioBlock = gradioApp().querySelector('#audio_notification');
+    if (audioBlock) {
+        // Find download link to get audio URL
+        const downloadLink = audioBlock.querySelector('a[download]');
 
-    // Search through all elements including Shadow DOM
-    traverseShadowDOM(gradioApp(), node => {
-        if (!foundAudio && node.tagName === 'AUDIO') {
-            foundAudio = node;
-        }
-    });
+        if (downloadLink) {
+            log('Found audio download link in Gradio 4.x structure');
 
-    if (foundAudio) return foundAudio;
+            let audioUrl = downloadLink.getAttribute('href');
 
-    // Fallback: search via play button
-    const playButton = gradioApp().querySelector(
-        '[aria-label="Воспроизвести"], [aria-label="Play"], [aria-label="Playback"]'
-    );
+            // Fix local URL for tunnels (127.0.0.1 or localhost)
+            if (audioUrl.includes('127.0.0.1') || audioUrl.includes('localhost')) {
+                const originalUrl = audioUrl;
+                audioUrl = audioUrl.replace(/http:\/\/(127\.0\.0\.1|localhost):\d+/, window.location.origin);
+                log(`Fixed audio URL: ${originalUrl} → ${audioUrl}`);
+            }
 
-    if (playButton) {
-        let parentComponent = playButton.closest('gradio-audio, [data-testid="audio-component"]');
-        if (parentComponent && parentComponent.shadowRoot) {
-            return parentComponent.shadowRoot.querySelector('audio');
+            // Create real audio element
+            const audio = new Audio(audioUrl);
+            audio.preload = 'auto';
+
+            cachedAudioElement = audio;
+            log('Created audio element with URL:', audioUrl);
+            return audio;
         }
     }
 
@@ -204,33 +188,41 @@ function toggleNotification(button, image) {
         return;
     }
 
-    const activateAudio = () => {
-        const newMutedState = !audio.muted;
-        audio.muted = newMutedState;
-        audio.currentTime = 0;
+    // Toggle muted state
+    const newMutedState = !audio.muted;
+    audio.muted = newMutedState;
 
-        if (newMutedState) {
-            audio.pause();
-        } else {
-            audio.play().catch(e => log.error(`Playback error: ${e.message}`));
-        }
+    log(`Audio ${newMutedState ? 'muted' : 'unmuted'}`);
 
-        button.title = newMutedState ? t.unmuteTooltip : t.muteTooltip;
-        button.style.borderColor = newMutedState ? '#FF005D' : '#00FF8C';
-        button.style.backgroundColor = newMutedState ? '#FF005D1A' : '#00FF8C1A';
-        image.src = newMutedState ? ICONS.ALARM_BELL_CANCELLED : ICONS.ALARM_BELL;
-    };
-
-    // For mobile devices
-    if (/Mobi|Android/i.test(navigator.userAgent)) {
-        activateAudio();
-        if (!audio.muted) {
-            audio.play().catch(e => log.error(`Mobile playback error: ${e.message}`));
-        }
+    // Reset and play/pause audio
+    audio.currentTime = 0;
+    if (newMutedState) {
+        audio.pause();
     } else {
-        activateAudio();
+        audio.play().catch(e => log.error(`Playback error: ${e.message}`));
+    }
+
+    button.title = newMutedState ? t.unmuteTooltip : t.muteTooltip;
+    button.style.borderColor = newMutedState ? '#FF005D' : '#00FF8C';
+    button.style.backgroundColor = newMutedState ? '#FF005D1A' : '#00FF8C1A';
+    image.src = newMutedState ? ICONS.ALARM_BELL_CANCELLED : ICONS.ALARM_BELL;
+}
+
+function resetAudioCache() {
+    if (cachedAudioElement) {
+        cachedAudioElement.pause();
+        cachedAudioElement = null;
+        log('Audio cache reset');
     }
 }
+
+// Call reset on UI updates if audio block changed
+onUiUpdate(() => {
+    const audioBlock = gradioApp().querySelector('#audio_notification');
+    if (!audioBlock && cachedAudioElement) {
+        resetAudioCache();
+    }
+});
 
 function toggleNSFWBlur(button, image) {
     const t2iGallery = gradioApp().querySelector('#txt2img_gallery_container');
