@@ -1,12 +1,12 @@
 (function() {
-    'use strict';
+    // 'use strict';
 
     const log = createLogger('asl');
 
     // ===== CONFIG =====
     const CONFIG = {
         DEBUG: false,
-        STAR_COUNT: 100,
+        STAR_COUNT: 125,
         TIMEOUT: 90000,
         COMPLETION_CHECK: 'txt2img_token_counter',
         NEKO_EMOJIS: ['≽^•⩊•^≼', '(=^･ω･^=)', '(=^･ｪ･^=)', 'ฅ^•ﻌ•^ฅ', '(=ↀωↀ=)', '( =ω=)..nyaa'],
@@ -16,12 +16,17 @@
             { selector: '#txt2img_token_counter', progress: 85, status: 'Almost ready...' }
         ],
         INTERVALS: {
-            progress: 15,
+            progress: 10,
             check: 50
+        },
+        SIMULATION: {
+            INCREMENT_MIN: 2,
+            INCREMENT_MAX: 5,
+            INTERVAL_MIN: 500,
+            INTERVAL_MAX: 2500
         }
     };
 
-    // Debug logging wrapper
     const logDebug = (...args) => CONFIG.DEBUG && log(...args);
 
     // ===== STYLES =====
@@ -35,8 +40,8 @@
             align-items: center;
             justify-content: center;
             font-family: 'Rounded Mplus 1c', 'M PLUS Rounded 1c', sans-serif;
-            background: var(--background-fill-primary, #0b0b0b);
-            opacity: 1;
+            background: color-mix(in srgb, var(--background-fill-primary, #0b0b0b), transparent);
+            backdrop-filter: blur(10px);
             user-select: none;
             overflow: hidden;
             z-index: 999999;
@@ -79,10 +84,10 @@
         }
 
         @keyframes als-twinkle {
-          0%, 100% { opacity: 0.2; transform: scale(1) translate(0) }
-          25% { opacity: 0.6; transform: scale(1.3) translate(5px,-5px) }
-          50% { opacity: 1; transform: scale(1.5) translate(0) }
-          75% { opacity: 0.6; transform: scale(1.3) translate(-5px,5px) }
+            0%, 100% { opacity: 0.2; transform: scale(1) translate(0) }
+            25% { opacity: 0.6; transform: scale(1.3) translate(5px,-5px) }
+            50% { opacity: 1; transform: scale(1.5) translate(0) }
+            75% { opacity: 0.6; transform: scale(1.3) translate(-5px,5px) }
         }
 
         .als-card {
@@ -100,9 +105,7 @@
             z-index: 1;
         }
 
-        .als-card-header {
-            flex-shrink: 0;
-        }
+        .als-card-header { flex-shrink: 0; }
 
         .als-card-content {
             flex: 1;
@@ -112,32 +115,26 @@
             gap: clamp(20px, 4vw, 28px);
         }
 
-        .als-card-footer {
-            flex-shrink: 0;
-        }
+        .als-card-footer { flex-shrink: 0; }
 
         .als-card.als-fade-in {
             animation: als-card-fade-in 0.8s cubic-bezier(0.35, 1.55, 0.65, 1) forwards;
         }
-
         .als-card.als-fade-out {
             animation: als-card-fade-out 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         @keyframes als-card-fade-in {
-          from { opacity: 0; transform: translateY(40px) scale(0.9) }
-          to   { opacity: 1; transform: translateY(0) scale(1) }
+            from { opacity: 0; transform: translateY(40px) scale(0.9) }
+            to   { opacity: 1; transform: translateY(0) scale(1) }
         }
-
         @keyframes als-card-fade-out {
-          from { opacity: 1; transform: translateY(0) }
-          to   { opacity: 0; transform: translateY(30px) }
+            from { opacity: 1; transform: translateY(0) }
+            to   { opacity: 0; transform: translateY(30px) }
         }
-
 
         .als-logo-section {
             text-align: center;
-            margin-bottom: 0;
         }
 
         .als-logo-text {
@@ -159,7 +156,6 @@
         .als-neko-container {
             display: flex;
             justify-content: center;
-            margin: 0;
         }
 
         .als-neko {
@@ -180,7 +176,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 0;
             height: clamp(50px, 10vw, 60px);
         }
 
@@ -188,7 +183,6 @@
             position: absolute;
             width: clamp(50px, 10vw, 60px);
             height: clamp(50px, 10vw, 60px);
-            opacity: 1;
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
         .als-spinner.als-hide {
@@ -206,12 +200,15 @@
             color: #ffffff;
             font-size: clamp(40px, 8vw, 50px);
             opacity: 0;
-            transition: opacity 0.3s ease 0.3s, transform 0.3s ease 0.3s;
             transform: scale(0.5);
+            transition: opacity 0.3s ease 0.3s, transform 0.3s ease 0.3s;
         }
         .als-checkmark.als-show {
             opacity: 1;
             transform: scale(1);
+        }
+        .als-checkmark.als-timeout {
+            color: #e05555;
         }
 
         .als-spinner-circle {
@@ -222,7 +219,6 @@
             border-radius: 50%;
             border-top-color: var(--color-accent, #db88ae);
             border-right-color: var(--color-accent, #db88ae);
-            opacity: 1;
             animation: als-spin 1.2s cubic-bezier(0.70, -0.55, 0.265, 1.55) infinite;
         }
         .als-spinner-circle:nth-child(2) {
@@ -239,10 +235,6 @@
         @keyframes als-spin {
             from { transform: rotate(0deg); }
             to   { transform: rotate(360deg); }
-        }
-
-        .als-progress-section {
-            margin: 0;
         }
 
         .als-progress-bg {
@@ -268,13 +260,10 @@
         .als-progress-bar::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
             background: linear-gradient(90deg,
                 transparent 0%,
-                rgba(255, 255, 255, 0.35) 50%,
+                rgba(255, 255, 255, 0.5) 50%,
                 transparent 100%);
             animation: als-shimmer 1.5s infinite;
         }
@@ -307,14 +296,16 @@
             font-size: clamp(13px, 2vw, 14px);
             font-weight: 700;
             min-height: 22px;
-            margin: 0 0 clamp(12px, 2vw, 16px) 0;
+            margin-bottom: clamp(12px, 2vw, 16px);
+        }
+        .als-status.als-timeout {
+            color: #e05555;
         }
 
         .als-kawaii-dots {
             display: flex;
             justify-content: center;
             gap: 6px;
-            margin-top: 0;
         }
 
         .als-dot {
@@ -324,7 +315,6 @@
             border-radius: 50%;
             animation: als-dot-bounce 1.4s infinite ease-in-out;
         }
-
         .als-dot:nth-child(1) { animation-delay: 0s; }
         .als-dot:nth-child(2) { animation-delay: 0.2s; }
         .als-dot:nth-child(3) { animation-delay: 0.4s; }
@@ -356,7 +346,7 @@
                         <div class="als-spinner-circle"></div>
                         <div class="als-spinner-circle"></div>
                     </div>
-                    <div class="als-checkmark" id="als-checkmark">✓</div>
+                    <div class="als-checkmark" id="als-checkmark"></div>
                 </div>
                 <div class="als-progress-section">
                     <div class="als-progress-bg">
@@ -379,35 +369,33 @@
         </div>
     `;
 
-    // ===== UTILITY FUNCTIONS =====
+    // ===== UTILITIES =====
     const Utils = {
-        randomItem: arr => arr[Math.floor(Math.random() * arr.length)],
+        randomInt: (min, max) => Math.floor(Math.random() * (max - min + 1)) + min,
+        randomItem: arr => arr[Utils.randomInt(0, arr.length - 1)],
         createElement: (tag, attrs = {}) => Object.assign(document.createElement(tag), attrs),
-        loadScript: src => new Promise((resolve, reject) => {
+        // Extracts filename from URL for error reporting
+        loadScript: src => new Promise((resolve) => {
             if (window.anime) return resolve();
             const script = document.createElement('script');
             script.src = src;
             script.onload = resolve;
-            script.onerror = () => {
-                log.warn('Failed to load anime.js');
-                resolve();
-            };
+            script.onerror = () => { log.warn(`Failed to load ${src.split('/').pop()}`); resolve(); };
             document.head.appendChild(script);
         })
     };
 
-    // ===== LOADER CLASS =====
+    // ===== LOADER =====
     class AnxetyLoadingScreen {
         constructor() {
             this.container = null;
             this.elements = {};
-            this.state = { current: 0, target: 0, active: true };
-            this.timers = { progress: null, check: null, timeout: null };
+            this.state = { current: 0, target: 0, active: true, currentStage: -1 };
+            this.timers = { progress: null, check: null, timeout: null, simulation: null };
             this.observers = [];
         }
 
         async init() {
-            // Skip if UI already loaded
             if (document.getElementById(CONFIG.COMPLETION_CHECK)) {
                 return logDebug('UI already loaded');
             }
@@ -420,12 +408,12 @@
             this.cacheElements();
             this.animateEntrance();
             this.startProgressTracking();
+            this.startSimulation();
             this.watchForCompletion();
         }
 
         injectStyles() {
-            const styleElement = Utils.createElement('style', { textContent: CSS });
-            document.head.appendChild(styleElement);
+            document.head.appendChild(Utils.createElement('style', { textContent: CSS }));
         }
 
         createContainer() {
@@ -434,7 +422,7 @@
         }
 
         createStars() {
-            const container = this.container.querySelector('#als-stars');
+            const wrap = this.container.querySelector('#als-stars');
             for (let i = 0; i < CONFIG.STAR_COUNT; i++) {
                 const star = Utils.createElement('div', { className: 'als-star' });
                 Object.assign(star.style, {
@@ -443,7 +431,7 @@
                     animationDelay: `${Math.random() * 3}s`,
                     animationDuration: `${2 + Math.random() * 2}s`
                 });
-                container.appendChild(star);
+                wrap.appendChild(star);
             }
         }
 
@@ -471,15 +459,39 @@
             this.elements.card = this.container.querySelector('.als-card');
         }
 
+        // Returns max progress allowed before the next real stage fires
+        _getSimulationCeiling() {
+            const next = this.state.currentStage + 1;
+            return next < CONFIG.STAGES.length ? CONFIG.STAGES[next].progress - 1 : 99;
+        }
+
+        // Randomly bumps target within the current stage ceiling
+        startSimulation() {
+            const { INCREMENT_MIN, INCREMENT_MAX, INTERVAL_MIN, INTERVAL_MAX } = CONFIG.SIMULATION;
+
+            const tick = () => {
+                if (!this.state.active) return;
+
+                const ceiling = this._getSimulationCeiling();
+                if (this.state.target < ceiling) {
+                    this.state.target = Math.min(ceiling, this.state.target + Utils.randomInt(INCREMENT_MIN, INCREMENT_MAX));
+                    logDebug(`Sim tick: target → ${this.state.target} (ceiling: ${ceiling})`);
+                }
+
+                this.timers.simulation = setTimeout(tick, Utils.randomInt(INTERVAL_MIN, INTERVAL_MAX));
+            };
+
+            this.timers.simulation = setTimeout(tick, Utils.randomInt(INTERVAL_MIN, INTERVAL_MAX));
+        }
+
+        // Smoothly interpolates current toward target every frame tick
         startProgressTracking() {
-            // Smooth progress animation
             this.timers.progress = setInterval(() => {
                 if (!this.state.active) return clearInterval(this.timers.progress);
 
                 if (this.state.current < this.state.target) {
                     const diff = this.state.target - this.state.current;
-                    const increment = Math.max(0.3, diff * 0.05);
-                    this.state.current = Math.min(this.state.target, this.state.current + increment);
+                    this.state.current = Math.min(this.state.target, this.state.current + Math.max(0.3, diff * 0.05));
                     this.updateProgressBar();
                 }
             }, CONFIG.INTERVALS.progress);
@@ -487,38 +499,33 @@
             this.checkLoadingState();
         }
 
+        // Polls DOM for stage selectors and advances accordingly
         checkLoadingState() {
-            let currentStage = 0;
-
             this.timers.check = setInterval(() => {
                 if (!this.state.active) return this.clearTimer('check');
 
-                // Stage 1: DOM Ready
-                if (currentStage === 0 && document.readyState !== 'loading') {
+                // Stage 0: DOM Ready
+                if (this.state.currentStage < 0 && document.readyState !== 'loading') {
                     this.setStage(0);
-                    currentStage = 1;
                 }
-
-                // Stage 2: Gradio App Found
-                if (currentStage === 1 && document.querySelector(CONFIG.STAGES[1].selector)) {
+                // Stage 1: Gradio App Found
+                if (this.state.currentStage === 0 && document.querySelector(CONFIG.STAGES[1].selector)) {
                     this.setStage(1);
-                    currentStage = 2;
                 }
-
-                // Stage 3: Token Counter Found (Completion)
-                if (currentStage === 2 && document.getElementById(CONFIG.COMPLETION_CHECK)) {
+                // Stage 2 advances progress but does NOT complete — visibility check handles that
+                if (this.state.currentStage === 1 && document.getElementById(CONFIG.COMPLETION_CHECK)) {
                     this.setStage(2);
                     this.clearTimer('check');
-                    this.complete();
                 }
             }, CONFIG.INTERVALS.check);
         }
 
-        setStage(stageIndex) {
-            const stage = CONFIG.STAGES[stageIndex];
+        setStage(index) {
+            const stage = CONFIG.STAGES[index];
+            this.state.currentStage = index;
             this.state.target = stage.progress;
             this.elements.status.textContent = stage.status;
-            logDebug(`Stage ${stageIndex + 1}: ${stage.status} (${stage.progress}%)`);
+            logDebug(`Stage ${index + 1}: ${stage.status} (${stage.progress}%)`);
         }
 
         updateProgressBar() {
@@ -527,84 +534,114 @@
             this.elements.progressPercent.textContent = `${progress}%`;
         }
 
+        // True only when element is laid out and at least partially in the viewport
+        _isElementVisible(el) {
+            if (!el) return false;
+            const r = el.getBoundingClientRect();
+            return (r.width || r.height) &&
+                r.top < window.innerHeight && r.bottom > 0 &&
+                r.left < window.innerWidth && r.right > 0;
+        }
+
+        // Waits for the completion element to actually appear on screen, then completes
         watchForCompletion() {
-            const observer = new MutationObserver(() => {
-                if (document.getElementById(CONFIG.COMPLETION_CHECK) && this.state.active && this.state.target >= 85) {
-                    observer.disconnect();
+            let handled = false;
+
+            const attemptComplete = () => {
+                if (handled || !this.state.active) return;
+
+                const el = document.getElementById(CONFIG.COMPLETION_CHECK);
+                if (!el) return;
+
+                if (this._isElementVisible(el)) {
+                    handled = true;
                     this.complete();
+                } else {
+                    requestAnimationFrame(attemptComplete);
+                }
+            };
+
+            const observer = new MutationObserver(() => {
+                if (document.getElementById(CONFIG.COMPLETION_CHECK)) {
+                    observer.disconnect();
+                    attemptComplete();
                 }
             });
 
             observer.observe(document.body, { childList: true, subtree: true });
             this.observers.push(observer);
 
-            // Force completion after timeout
+            // Element may already exist before observer attaches
+            if (document.getElementById(CONFIG.COMPLETION_CHECK)) {
+                observer.disconnect();
+                attemptComplete();
+            }
+
+            // Force completion on timeout
             this.timers.timeout = setTimeout(() => {
                 if (this.state.active) {
                     log.warn('Timeout reached, forcing completion');
+                    handled = true;
                     observer.disconnect();
-                    this.complete();
+                    this.complete('timeout');
                 }
             }, CONFIG.TIMEOUT);
         }
 
-        complete() {
+        // reason: 'success' (default) | 'timeout'
+        complete(reason = 'success') {
             if (!this.state.active) return;
-
             this.state.active = false;
             this.state.target = 100;
             this.state.current = 100;
 
-            // Clear all timers
             Object.keys(this.timers).forEach(key => this.clearTimer(key));
-
-            // Disconnect observers
             this.observers.forEach(obs => obs.disconnect());
             this.observers = [];
 
             this.updateProgressBar();
-
-            // Show checkmark, hide spinner
             this.elements.spinner?.classList.add('als-hide');
-            this.elements.checkmark?.classList.add('als-show');
 
-            if (this.elements.status) {
+            if (reason === 'timeout') {
+                this.elements.checkmark?.classList.add('als-timeout', 'als-show');
+                this.elements.checkmark.textContent = '✗';
+                this.elements.status?.classList.add('als-timeout');
+                this.elements.status.textContent = 'Timed out...';
+            } else {
+                this.elements.checkmark?.classList.add('als-show');
+                this.elements.checkmark.textContent = '✓';
                 this.elements.status.textContent = `Ready! ${Utils.randomItem(CONFIG.NEKO_EMOJIS)}`;
             }
 
-            log('UI fully loaded');
+            log(`UI complete: ${reason}`);
 
-            // Fade out after
+            // Wait for checkmark to be seen, then fade out and remove
             setTimeout(() => {
                 this.elements.card?.classList.add('als-fade-out');
                 this.container?.classList.add('als-fade-out');
-                setTimeout(() => this.removeContainer(), 100);
-            }, 300);
+                setTimeout(() => this.removeContainer(), 850); // covers 0.8s container transition
+            }, 800);
         }
 
         clearTimer(name) {
-            if (this.timers[name]) {
-                const fn = name === 'check' || name === 'progress' ? clearInterval : clearTimeout;
-                fn(this.timers[name]);
-                this.timers[name] = null;
-            }
+            if (!this.timers[name]) return;
+            const clear = (name === 'simulation' || name === 'timeout') ? clearTimeout : clearInterval;
+            clear(this.timers[name]);
+            this.timers[name] = null;
         }
 
         removeContainer() {
             try {
                 this.container?.parentNode?.removeChild(this.container);
-            } catch(e) {
+            } catch (e) {
                 log.error(`Error removing container: ${e}`);
             }
-
-            // Clear references
             this.container = this.elements = null;
-
             log('Loading screen removed');
         }
     }
 
-    // ===== INITIALIZATION =====
+    // ===== INIT =====
     const initialize = () => new AnxetyLoadingScreen().init();
 
     document.readyState === 'loading'
