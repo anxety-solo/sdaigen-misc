@@ -9,7 +9,7 @@
         STAR_COUNT: 125,
         TIMEOUT: 90000,
         COMPLETION_CHECK: 'txt2img_token_counter',
-        NEKO_EMOJIS: ['≽^•⩊•^≼', '(=^･ω･^=)', '(=^･ｪ･^=)', 'ฅ^•ﻌ•^ฅ', '(=ↀωↀ=)', '( =ω=)..nyaa'],
+        NEKO_EMOJIS: ['≽^•⩊•^≼', '=^･ω･^=', '=^･ｪ･^=', 'ฅ^•ﻌ•^ฅ', '(=ↀωↀ=)', '( =ω=)...', 'ᗜ⩊ᗜ'],
         STAGES: [
             { selector: null, progress: 25, status: 'DOM ready...' },
             { selector: '#gradio-app, gradio-app', progress: 55, status: 'Loading Gradio...' },
